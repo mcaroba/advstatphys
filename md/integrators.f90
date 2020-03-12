@@ -57,4 +57,47 @@ module integrators
 
   end subroutine
 
+
+
+
+  subroutine berendsen_thermostat(vel, T0, T, tau, dt)
+
+    implicit none
+
+    real*8, intent(inout) :: vel(:,:)
+    real*8, intent(in) :: T0, T, tau, dt
+
+    vel = vel * dsqrt(1.d0 + dt/tau * (T0/T - 1.d0))
+
+  end subroutine
+
+
+
+
+  subroutine remove_cm_vel(vel, M)
+
+!   I should adapt this code to mixed boundary conditions, where
+!   the CM velocity can be removed per Cartesian dimension independently
+
+    implicit none
+
+    real*8, intent(inout) :: vel(:,:)
+    real*8, intent(in) :: M(:)
+    real*8 :: cm_pos(1:3), cm_vel(1:3), total_mass
+    integer :: Np, i
+
+    Np = size(vel, 2)
+
+    cm_vel = 0.d0
+    total_mass = 0.d0
+    do i = 1, Np
+      cm_vel(1:3) = cm_vel(1:3) + M(i)*vel(1:3,i)
+      total_mass = total_mass + M(i)
+    end do
+    cm_vel = cm_vel / total_mass
+    do i = 1, Np
+      vel(1:3,i) = vel(1:3,i) - cm_vel(1:3)
+    end do
+
+  end subroutine
 end module
