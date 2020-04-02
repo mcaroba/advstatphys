@@ -98,10 +98,14 @@ program lj
     vel(1:3, i) = vel(1:3, i) / v_mod
   end do
   if( .not. container )then
-    vel(1:3,:) = dsqrt(3.d0*kB*T / M(:) * dfloat(Np-1)/dfloat(Np) ) * vel(1:3,:)
+    do i = 1,3
+      vel(i,:) = dsqrt(3.d0*kB*T / M(:) * dfloat(Np-1)/dfloat(Np) ) * vel(i,:)
+    end do
     call remove_cm_vel(vel, M)
   else
-    vel(1:3,:) = dsqrt(3.d0*kB*T / M(:)) * vel(1:3,:)
+    do i = 1, 3
+      vel(i,:) = dsqrt(3.d0*kB*T / M(:)) * vel(i,:)
+    end do
   end if
 
 
