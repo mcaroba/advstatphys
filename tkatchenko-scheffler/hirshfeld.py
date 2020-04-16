@@ -1,6 +1,5 @@
 from ase.io import read
 from gpaw.analyse.hirshfeld import HirshfeldPartitioning
-from gpaw.analyse.vdwradii import vdWradii
 from gpaw import GPAW
 
 # Read in atomic configuration
