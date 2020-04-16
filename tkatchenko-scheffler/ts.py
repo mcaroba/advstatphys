@@ -15,14 +15,14 @@ except:
     from ase.data.s22 import data as s22
     from ase import Atoms
     atoms = Atoms(s22[system]["symbols"], s22[system]["positions"])
-    atoms.center(vacuum = 4.)
 
 # Now let's shift the position of the methane molecule relative
 # to the benzene
 for z_shift in np.arange(-1.,2.,0.1):
     atoms_shifted = atoms.copy()
-    for i in range(12,16):
+    for i in range(12,17):
         atoms_shifted.positions[i] += [0, 0, z_shift]
+    atoms.center(vacuum = 4.)
     calc = GPAW(xc="PBE", txt="gpaw.out")
     atoms_shifted.set_calculator(calc)
     e = atoms_shifted.get_potential_energy()
