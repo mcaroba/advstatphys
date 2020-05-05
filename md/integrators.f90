@@ -100,4 +100,31 @@ module integrators
     end do
 
   end subroutine
+
+
+
+
+  subroutine scale_box(pos, L, init_L, final_L, t, init_t, final_t)
+
+    implicit none
+
+    real*8, intent(inout) :: pos(:,:), L(:)
+    real*8, intent(in) :: init_L(:), final_L(:)
+    integer, intent(in) :: t, init_t, final_t
+    real*8 :: f(1:3)
+    integer :: natoms, i
+
+!   We scale the box and positions only if within the rescaling interval
+    if( t > init_t .and. t <= final_t )then
+      f(1:3) = ( init_L(1:3) + (final_L(1:3) - init_L(1:3)) / dfloat(final_t - init_t) * &
+                 dfloat(t - init_t) ) / L(1:3)
+      L(1:3) = L(1:3) * f(1:3)
+      natoms = size(pos,2)
+      do i = 1, natoms
+        pos(1:3, i) = pos(1:3, i) * f(1:3)
+      end do
+    end if
+
+  end subroutine
+
 end module

@@ -1,0 +1,42 @@
+####################################################################################
+#
+# To be on the safe side, since the code interface is not fool-proof, give all the
+# parameters below, do not trust the defaults will be sensible!
+#
+####################################################################################
+
+####################################################################################
+#
+# These are "mandatory" options. Some (like the number of particles and the side
+# length of the simulation box) will get rewritten if you restart
+#
+# This defines the number of particles (it gets rewritten if using "restart")
+Np = 100
+# Side length of cubic simulation box in Angstrom
+L = 30.
+# Temperature in K
+T = 250.
+# Number of time steps
+Nt = 10000
+# Time step in fs
+dt = 2.
+# Thermostat time constant in fs
+tau = 100.
+#
+####################################################################################
+
+####################################################################################
+#
+# Other options
+#
+# Do we restart from an existing trj.xyz? This overwrites Np and L, as well as
+# reading in velocities from the file
+restart = .false.
+#
+# Do we rescale the simulation box (including all the atomic positions)
+rescale = .false.
+# Side length at the end of the simulation
+rescale_L = 40.
+#
+####################################################################################
+
