@@ -1,0 +1,5 @@
+! Lennard-Jones parameters for Ar
+epsilon = 0.0117
+sigma = 3.235
+Rcut = 12.
+M0 = 39.95

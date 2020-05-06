@@ -5,6 +5,7 @@ program lj
   use potentials
   use integrators
   use neighbors
+  use analyze
 
   implicit none
 
@@ -15,15 +16,23 @@ program lj
   integer :: i, Nt, N, j, step, Np, k, write_xyz, nbuild, write_log
   integer, allocatable :: list(:,:), nn(:)
 
-  real*8 :: epsilon, sigma, Rcut, dist2(1:3), f_img(-1:1, -1:1, -1:1), tau
+  real*8 :: epsilon, sigma, Rcut, dist2(1:3), f_img(-1:1, -1:1, -1:1), tau = 100.d0
   integer :: i2, j2, k2
 
   character*128 :: keyword, crap
   character*1 :: keyword_first
-  integer :: iostatus
-  real*8 :: rescale_L(1:3), init_L(1:3), crap_v3(1:3)
+  integer :: iostatus, l_max = -1, i_ub
+  real*8 :: crap_v3(1:3), rdf_min = 4.5d0
+  real*8 :: V, virial, P, M0, update_bar, tau_p = 100.d0, P0
   logical :: rescale = .false., restart = .false.
+  real*8, allocatable :: Ql(:)
 
+
+  write(*,*)
+  write(*,'(1X,A)') "*************************************"
+  write(*,'(1X,A)') "  Welcome to the CBUF MD simulator   "
+  write(*,*)        "   (CBUF = Crappy BUt Functional)    "
+  write(*,*)
 
   PBC = .true.
 
@@ -32,15 +41,12 @@ program lj
   conv_to_bar = 1.6021766208d6
 
 ! Options for the neighbor list interface and writing out
+! Ideally there would be a runtime check on whether the
+! lists are built too often or, especially, not often enough
   nbuild = 100
   R_neighbors = 15.d0
   write_xyz = 100
   write_log = 100
-
-! Lennard-Jones parameters
-  epsilon = 0.0117d0
-  sigma = 3.235d0
-  Rcut = 12.d0
 
 
 ! Read input file
@@ -56,6 +62,9 @@ program lj
       if( keyword == "T" )then
         backspace(10)
         read(10, *) keyword, keyword, T
+      else if( keyword == "P" )then
+        backspace(10)
+        read(10, *) keyword, keyword, P0
       else if( keyword == "Np" )then
         backspace(10)
         read(10, *) keyword, keyword, Np
@@ -75,13 +84,51 @@ program lj
       else if( keyword == "tau" )then
         backspace(10)
         read(10, *) keyword, keyword, tau
+      else if( keyword == "tau_p" )then
+        backspace(10)
+        read(10, *) keyword, keyword, tau_p
       else if( keyword == "rescale" )then
         backspace(10)
         read(10, *) keyword, keyword, rescale
-      else if( keyword == "rescale_L" )then
+      else if( keyword == "rdf_min" )then
         backspace(10)
-        read(10, *) keyword, keyword, rescale_L(1)
-        rescale_L(2:3) = rescale_L(1)
+        read(10, *) keyword, keyword, rdf_min
+      else if( keyword == "write_log" )then
+        backspace(10)
+        read(10, *) keyword, keyword, write_log
+      else if( keyword == "l_max" )then
+        backspace(10)
+        read(10, *) keyword, keyword, l_max
+        if( l_max >= 0 )then
+          allocate( Ql(0:l_max) )
+        end if
+      end if
+    end if
+  end do
+  close(10)
+
+! Read potential parameter file
+  open( unit = 10, file = "pot.param", status = "old" )
+  iostatus = 0
+  do while( iostatus == 0 )
+    read(10, *, iostat=iostatus) keyword_first
+    if( keyword_first == "!" .or. keyword_first == "#" )then
+      cycle
+    else
+      backspace(10)
+      read(10, *, iostat=iostatus) keyword
+      if( keyword == "epsilon" )then
+        backspace(10)
+        read(10, *) keyword, keyword, epsilon
+      else if( keyword == "sigma" )then
+        backspace(10)
+        read(10, *) keyword, keyword, sigma
+      else if( keyword == "Rcut" )then
+        backspace(10)
+        read(10, *) keyword, keyword, Rcut
+      else if( keyword == "M0" )then
+        backspace(10)
+        read(10, *) keyword, keyword, M0
       end if
     end if
   end do
@@ -110,9 +157,9 @@ program lj
   allocate( xi_prev(1:3, 1:Np) )
   allocate( nn(1:Np) )
   allocate( list(1:Np, 1:Np) )
-! We hardcode the Ar mass
+! The mass M0 needs to be read from the pot.param file
   allocate( M(1:Np) )
-  M = 39.95d0 * 103.62d0
+  M = M0 * 103.62d0
 
 
   if( restart )then
@@ -126,13 +173,25 @@ program lj
     end do
     close(10)
   else
+    write(*,*)
+    write(*,'(1X,A)') "Generating starting configuration:"
+    write(*,*)
+    write(*,'(1X,A)') ">...................................<"
+    write(*,'(1X,A)',advance='no') '['
+    update_bar = dfloat(Np)/36.d0
+    i_ub = 1
 !   If this is a new configuration, randomize
 !   Safety distance (particles must be further away than this distance during initialization)
-    d0 = 1.5d0*sigma
+    d0 = 0.7d0*sigma
 !   Initialize random number generator
     call init_random_seed()
 !   Make sure that atoms are initially far away from each other
     do i = 1, Np
+!     Update progress bar every Np/36 iterations
+      if(dfloat(i) > dfloat(i_ub)*update_bar)then
+        write(*,'(A)', advance='no') '='
+        i_ub = i_ub + 1
+      end if
 !     Give particle i an initial postion
       call random_number(new_pos)
       do k = 1, 3
@@ -164,9 +223,9 @@ program lj
       vel(i,:) = dsqrt(3.d0*kB*T / M(:) * dfloat(Np-1)/dfloat(Np) ) * vel(i,:)
     end do
     call remove_cm_vel(vel, M)
+    write(*,'(A)') ']'
+    write(*,*)
   end if
-  init_L(1:3) = L(1:3)
-
 
 
 ! Open log and trajectory files
@@ -174,11 +233,30 @@ program lj
   open(unit=20, file="trj.xyz", status="unknown")
 
 
+  write(*,'(1X,A)') "Running MD simulation"
+  write(*,*)
+  write(*,'(1X,A,1X,F8.1,1X,A)') "T  =", T, "K"
+  write(*,'(1X,A,1X,F8.4,1X,A)') "L  =", L(1), "Angst."
+  write(*,'(1X,A,1X,I8,1X,A)') "Np =", Np, "particles"
+  write(*,*)
+  write(*,'(1X,A)') "Progress:"
+  write(*,*)
+  write(*,'(1X,A)') ">...................................<"
+  write(*,'(1X,A)',advance='no') '['
+  update_bar = dfloat(Nt)/36.d0
+  i_ub = 1
+
 ! Do the molecular dynamics
   do step = 0, Nt
+!   Update progress bar every Nt/36 iterations
+    if(dfloat(step) > dfloat(i_ub)*update_bar)then
+      write(*,'(A)', advance='no') '='
+      i_ub = i_ub + 1
+    end if
     f = 0.d0
     Ep = 0.d0
     Ek = 0.d0
+    virial = 0.d0
 !   Rebuild list every now and then
     if( int(step/nbuild)*nbuild == step )then
       call build_neighbors(pos, Np, L, PBC, R_neighbors, nn, list)
@@ -192,6 +270,9 @@ program lj
           f(1:3, i) = f(1:3, i) + fi(1:3)
           f(1:3, j) = f(1:3, j) - fi(1:3)
           Ep = Ep + Epot
+!         Compute the virial
+          call get_distance( pos(1:3, i), pos(1:3, j), L, PBC, dist, d )
+          virial = virial - dot_product(fi,dist)
         end if
       end do
       if( step == 0 )then
@@ -209,9 +290,15 @@ program lj
       Ek = Ek + 0.5d0 * M(i) * dot_product(vel(1:3, i), vel(1:3, i))
     end do
 
+!   Get pressure from the virial
+    V = L(1)*L(2)*L(3)
+    P = conv_to_bar* ( kB*dfloat(Np)*T/V + virial/V/3.d0 )
 !   Scale box if necessary
     if( rescale )then
-      call scale_box(xi_prev, L, init_L, rescale_L, step, 0, Nt)
+      call berendsen_barostat(L, P0, P, tau_p, dt)
+      do i = 1, Np
+        call berendsen_barostat(xi_prev(1:3,i), P0, P, tau_p, dt)
+      end do
     end if
 !   Remove CM velocity (should be close to zero since we initialized properly)
     call remove_cm_vel(vel, M)
@@ -233,14 +320,30 @@ program lj
       end if
     end do
 
-!   Write time, potential energy, kinetic energy, instantaneous temperature, order parameters
+
+!   Write time, potential energy, kinetic energy, instantaneous temperature, pressure,
+!   and order parameters. The pressure only makes sense if we're rescaling the box
     if( int(step/write_log)*write_log == step )then
-      write(10,*) dfloat(step)*dt, Ep, Ek, 2.d0/3.d0/dfloat(Np-1)/kB*Ek
+      if( l_max >= 0 )then
+        do i = 0, l_max
+          call get_Ql(pos, L, PBC, nn, list, rdf_min, i, Ql(i))
+        end do
+        write(10,*) dfloat(step)*dt, Ep, Ek, 2.d0/3.d0/dfloat(Np-1)/kB*Ek, P, Ql(0:l_max)
+      else
+        write(10,*) dfloat(step)*dt, Ep, Ek, 2.d0/3.d0/dfloat(Np-1)/kB*Ek, P
+      end if
     end if
   end do
 
   close(10)
   close(20)
+
+  write(*,'(A)') ']'
+
+  write(*,*)
+  write(*,'(1X,A)') "*************************************"
+  write(*,*)
+
 
 end program
 

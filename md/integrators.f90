@@ -74,6 +74,22 @@ module integrators
 
 
 
+  subroutine berendsen_barostat(vector_3d, P0, P, tau, dt)
+!   Berendsen barostat that uses the compressibility of water
+!   and takes P in bar
+    implicit none
+
+    real*8, intent(inout) :: vector_3d(:)
+    real*8, intent(in) :: P0, P, tau, dt
+
+    vector_3d = vector_3d * (1.d0 + dt/tau * 4.5d-5 * (P - P0))**(1.d0/3.d0)
+
+  end subroutine
+
+
+
+
+
   subroutine remove_cm_vel(vel, M)
 
 !   I should adapt this code to mixed boundary conditions, where
