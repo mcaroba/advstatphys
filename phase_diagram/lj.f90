@@ -96,6 +96,9 @@ program lj
       else if( keyword == "write_log" )then
         backspace(10)
         read(10, *) keyword, keyword, write_log
+      else if( keyword == "write_xyz" )then
+        backspace(10)
+        read(10, *) keyword, keyword, write_xyz
       else if( keyword == "l_max" )then
         backspace(10)
         read(10, *) keyword, keyword, l_max
