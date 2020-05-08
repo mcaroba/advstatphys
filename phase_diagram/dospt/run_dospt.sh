@@ -25,14 +25,15 @@ cell = $cell $cell $cell
 temperature = $T
 format = xyz
 estimate_velocities = .false.
-renormalize_dos = .true.
+renormalize_dos = .false.
 eof
 
 DoSPT > /dev/null
 
 S=$(tail -1 entropy | awk '{print $6/32.}')
+dof=$(tail -1 fluidicity | awk '{print $2}')
 
-echo "$T $P $S" >> entropies.dat
+echo "$T $P $S $dof" >> entropies.dat
 
 done
 echo "" >> entropies.dat
