@@ -1,0 +1,6 @@
+! Lennard-Jones parameters for Ar and Rn
+species = Ar Rn
+epsilon = 0.0117 0.02346
+sigma = 3.235 4.53
+Rcut = 12. 12.
+M0 = 39.95 222.02

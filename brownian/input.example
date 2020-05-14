@@ -1,0 +1,63 @@
+####################################################################################
+#
+# To be on the safe side, since the code interface is not fool-proof, give all the
+# parameters below, do not trust the defaults will be sensible!
+#
+####################################################################################
+
+####################################################################################
+#
+# These are "mandatory" options. Some (like the number of particles and the side
+# length of the simulation box) will get rewritten if you restart
+#
+# This defines the number of particles (it gets rewritten if using "restart")
+Np = 100
+# Side length of cubic simulation box in Angstrom
+L = 30.0
+# Temperature in K
+T = 50.
+# Pressure in bar
+P = 10.
+# Number of time steps
+Nt = 10000
+# Time step in fs
+dt = 2.
+# Thermostat time constant in fs
+tau = 100.
+# Barostat time constant in fs
+tau_p = 100.
+#
+####################################################################################
+
+####################################################################################
+#
+# Other options
+#
+# Do we restart from an existing trj.xyz? This overwrites Np and L, as well as
+# reading in velocities from the file
+restart = .false.
+#
+# Do we rescale the simulation box (including all the atomic positions) to match the
+# requested pressure?
+rescale = .true.
+#
+# Max l for Steinhardt order parameter calculation (gets calculated from 0 to l_max)
+l_max = 6
+#
+# Frequency to write the trajectory file
+write_xyz = 100
+#
+# Frequency to write the log file with all the thermodynamic information
+write_log = 100
+#
+# If planar is .true. then we initialize all the particle positions in a plane
+# (unless restart == .true., in which case we just initialize according to file)
+planar = .true.
+#
+# Number of species in the simulation
+Nspecies = 2
+#
+# Chemical formula, according to the pot.param definition of species (i.e., how
+# many of each atom defined there)
+formula = 99 1
+####################################################################################
