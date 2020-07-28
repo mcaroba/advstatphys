@@ -126,7 +126,7 @@ module potentials
 !   The force on i is calculated assuming the convention that dist(1) = xj - xi
     fi = 0.d0
     do i = 1, 3
-      fi(i) = - E0/pi * dexp(-((dabs(d(i))-Ri)/decay_length)**2) * d(i) &
+      fi(i) = - E0/dsqrt(pi) * dexp(-((dabs(d(i))-Ri)/decay_length)**2) * d(i) &
                 / dabs(d(i)) / decay_length
       fi(i) = fi(i) - E0/dsqrt(pi) * dexp(-((dabs(d(i+3))-Ri)/decay_length)**2) &
               * d(i+3) / dabs(d(i+3)) / decay_length
